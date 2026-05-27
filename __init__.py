@@ -10,7 +10,7 @@ from nonebot import *
 from . import util
 from .util import make_forward_msg  # 新增这行
 from hoshino import Service, priv  # 如果使用hoshino的分群管理取消注释这行
-
+from . import web_api  # 注册 HTTP API 路由
 #
 sv_help = '''
 - [有人/大家说AA回答BB] 对所有人生效
@@ -86,8 +86,13 @@ async def eqa_main(*params):
 
     # 回复消息（合并转发）
     ans = await answer(ctx)
-    if isinstance(ans, list):
-        return await make_forward_msg(bot, ctx, ans, title="问答回复", brief="查看问答回复内容")
+    if isinstance(ans, list):  
+        try:  
+            return await make_forward_msg(bot, ctx, ans, title="问答回复", brief="查看问答回复内容")  
+        except Exception:  
+            # Fallback to normal sending  
+            content = ans[0]['content'] if ans else ''  
+            return await bot.send(ctx, content)
 
     # 显示全部设置的问题（合并转发）
     show_target = util.get_msg_keyword(config['comm']['show_question_list'], msg, True)
