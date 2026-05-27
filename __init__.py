@@ -233,7 +233,18 @@ async def answer(ctx):
     # 处理base64图片（原逻辑保留）
     if config['image_base64']:
         msg_content = util.message_image2base64(msg_content)
-
+    
+    # 新增：处理链接防拦截  
+    processed_content = []  
+    for ms in msg_content:  
+        if ms['type'] == 'text':  
+            # 对文本内容中的链接进行处理  
+            processed_text = util.process_url_with_break(ms['data']['text'])  
+            processed_content.append(MessageSegment.text(processed_text))  
+        else:  
+            processed_content.append(ms)  
+    msg_content = processed_content  
+    
     # 构造合并转发消息（核心修改）
     forward_msg_list = [{
         "name": "问答机器人",  # 转发卡片中显示的发送者名

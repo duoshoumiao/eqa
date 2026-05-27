@@ -35,6 +35,23 @@ def format_reg(keyword, is_first=False):
     keyword = keyword if isinstance(keyword, list) else [keyword]
     return f"{'|'.join([f'^{i}' for i in keyword] if is_first else keyword)}"
 
+def process_url_with_break(text: str, break_word: str = "删除") -> str:  
+    """  
+    在链接中间插入字符以防止被拦截  
+    :param text: 要处理的文本  
+    :param break_word: 插入的字符，默认为"删除"  
+    :return: 处理后的文本  
+    """  
+    # 匹配 http/https 链接  
+    url_pattern = r'(https?://[^\s]+)'  
+      
+    def insert_break(match):  
+        url = match.group(1)  
+        # 在链接中间插入字符（大约在中间位置）  
+        mid = len(url) // 2  
+        return url[:mid] + break_word + url[mid:]  
+      
+    return re.sub(url_pattern, insert_break, text)
 
 def get_path(*paths):
     return os.path.join(os.path.dirname(__file__), *paths)
