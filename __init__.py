@@ -15,6 +15,7 @@ from hoshino import Service, priv  # 如果使用hoshino的分群管理取消注
 sv_help = '''
 - [有人/大家说AA回答BB] 对所有人生效
 - [我说AA回答BB] 仅仅对个人生效
+- [本群说AA回答BB] 仅仅对本群生效（优先级最高）
 - [不要回答AA] 删除某问题下的回答(优先度:自己设置的>最后设置的)
 - [问答] 查看自己的回答,@别人可以看别人的
 - [全部问答] 查看本群设置的回答
@@ -76,15 +77,23 @@ async def eqa_main(*params):
             # 普通文本回复（设置问答成功提示）
             return await bot.send(ctx, msg)
 
-    # 处理回答自己的问题
-    keyword = util.get_msg_keyword(config['comm']['answer_me'], msg, True)
-    if keyword:
-        msg = await ask(ctx, keyword, True)
-        if msg:
-            # 普通文本回复（设置问答成功提示）
-            return await bot.send(ctx, msg)
-
-    # 回复消息（合并转发）
+    # 处理回答自己的问题  
+    keyword = util.get_msg_keyword(config['comm']['answer_me'], msg, True)  
+    if keyword:  
+        msg = await ask(ctx, keyword, True)  
+        if msg:  
+            # 普通文本回复（设置问答成功提示）  
+            return await bot.send(ctx, msg)  
+  
+    # 处理回答本群的问题  
+    keyword = util.get_msg_keyword(config['comm']['answer_group'], msg, True)  
+    if keyword:  
+        msg = await ask(ctx, keyword, False, True)  
+        if msg:  
+            # 普通文本回复（设置问答成功提示）  
+            return await bot.send(ctx, msg)  
+  
+    # 回复消息（合并转发）  
     ans = await answer(ctx)
     if isinstance(ans, list):
         return await make_forward_msg(bot, ctx, ans, title="问答回复", brief="查看问答回复内容")
@@ -115,7 +124,7 @@ async def eqa_main(*params):
 
 
 # 设置问题的函数
-async def ask(ctx, keyword, is_me):
+async def ask(ctx, keyword, is_me, is_group=False):
     is_super_admin = ctx['user_id'] in admins
     is_admin = util.is_group_admin(ctx) or is_super_admin
 
@@ -163,18 +172,19 @@ async def ask(ctx, keyword, is_me):
                 return '图片缓存失败了啦！'
         message.append(ms)
 
-    # 为每个拆分后的问题单独存储
-    success_count = 0
-    for single_qus in qus_list_split:
-        qus_list = db.get(single_qus, [])
-        qus_list.append({
-            'user_id': ctx['user_id'],
-            'group_id': ctx['group_id'],
-            'is_me': is_me,
-            'qus': single_qus,
-            'message': message
-        })
-        db[single_qus] = qus_list
+    # 为每个拆分后的问题单独存储  
+    success_count = 0  
+    for single_qus in qus_list_split:  
+        qus_list = db.get(single_qus, [])  
+        qus_list.append({  
+            'user_id': ctx['user_id'],  
+            'group_id': ctx['group_id'],  
+            'is_me': is_me,  
+            'is_group': is_group,  
+            'qus': single_qus,  
+            'message': message  
+        })  
+        db[single_qus] = qus_list  
         success_count += 1
 
     return f'我学会啦！共设置了{success_count}个问题，来问问我吧～'
@@ -197,12 +207,16 @@ async def answer(ctx):
     ans_list = util.filter_list(ans_list, lambda x: group_id == x['group_id'] or (
             x['user_id'] in admins if super_admin_is_all_group else False))
 
-    if not ans_list:
-        return False
-
-    # 是否优先自己的回答
-    if priority_self_answer:
-        self_list = util.filter_list(ans_list, lambda x: user_id == x['user_id'])
+    if not ans_list:  
+        return False  
+  
+    # 优先本群专属回答  
+    group_list = util.filter_list(ans_list, lambda x: x.get('is_group', False))
+    ans_list = group_list if group_list else ans_list  
+  
+    # 是否优先自己的回答  
+    if priority_self_answer:  
+        self_list = util.filter_list(ans_list, lambda x: user_id == x['user_id'])  
         ans_list = self_list if self_list else ans_list
 
     # 随机/最后一个回复
@@ -340,9 +354,15 @@ async def del_question(ctx, target, clear=False):
         if not ans_list:
             continue
 
-        if config['rule']['question_del_last']:
-            ans_list.reverse()
-
+        # 优先删除本群专属回答  
+        if config['rule']['question_del_last']:  
+            ans_list.reverse()  
+          
+        # 优先处理本群专属的回答  
+        group_list = util.filter_list(ans_list, lambda x: x.get('is_group', False))  
+        if group_list:  
+            ans_list = group_list
+        
         is_del_flag = False
         for index, value in enumerate(ans_list):
             # 如果不是本群就跳过  或者 是超级管理员的话 就继续删除

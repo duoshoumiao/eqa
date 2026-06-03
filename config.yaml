@@ -15,6 +15,7 @@ comm:
     - 大家说
     - 有人说
   answer_me: 我说
+  answer_group: 本群说
 
   # 问后回答处理  比如 大家说1回答2  这里的回答定义文字
   answer_handler: 回答
