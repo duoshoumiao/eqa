@@ -289,9 +289,10 @@ async def show_question(ctx, target, show_all=False):
             else:
                 ans_list = util.get_all_ans_list_by_qq(qq, ans_list)
         else:
-            all_list = util.filter_list(ans_list, lambda x: True in list(not i['is_me'] for i in x))
-            priority_list = util.filter_list(ans_list, lambda x: True in list(i['is_me'] for i in x))
-            ans_list = sum(list(util.get_all_ans_list_by_qq(q, db_list) for q in admins), all_list)
+            all_list = util.filter_list(ans_list, lambda x: True in list(not i['is_me'] for i in x))  
+            priority_list = util.filter_list(ans_list, lambda x: True in list(i['is_me'] for i in x))  
+            group_list = util.filter_list(ans_list, lambda x: True in list(i.get('is_group', False) for i in x))  
+            ans_list = sum(list(util.get_all_ans_list_by_qq(q, db_list) for q in admins), all_list) all_list)
 
         # 处理发送者名称
         if is_at:
@@ -305,13 +306,19 @@ async def show_question(ctx, target, show_all=False):
         str_list = await util.cq_msg2str(str_list, group_id=ctx['group_id'])
         msg_context = f'全体问答:\n{print_all_split.join(str_list)}' if show_all else "/".join(str_list)
 
-        priority_msg = ''
-        if show_all:
-            pri_str_list = util.get_qus_str_by_list(priority_list)
-            pri_str_list = await util.cq_msg2str(pri_str_list, group_id=ctx['group_id'])
-            priority_msg = "\n个人问答:\n" + print_all_split.join(pri_str_list)
-
-        final_content = f"{head}{msg_context if ans_list else '还没有设置过问题呢'}{priority_msg}"
+        priority_msg = ''  
+        if show_all:  
+            pri_str_list = util.get_qus_str_by_list(priority_list)  
+            pri_str_list = await util.cq_msg2str(pri_str_list, group_id=ctx['group_id'])  
+            priority_msg = "\n个人问答:\n" + print_all_split.join(pri_str_list)  
+  
+        group_msg = ''  
+        if show_all:  
+            grp_str_list = util.get_qus_str_by_list(group_list)  
+            grp_str_list = await util.cq_msg2str(grp_str_list, group_id=ctx['group_id'])  
+            group_msg = "\n本群问答:\n" + print_all_split.join(grp_str_list)  
+  
+        final_content = f"{head}{msg_context if ans_list else '还没有设置过问题呢'}{priority_msg}{group_msg}"
         # 添加到转发列表
         forward_msg_list.append({
             "name": name,
