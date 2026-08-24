@@ -292,7 +292,7 @@ async def show_question(ctx, target, show_all=False):
             all_list = util.filter_list(ans_list, lambda x: True in list(not i['is_me'] for i in x))  
             priority_list = util.filter_list(ans_list, lambda x: True in list(i['is_me'] for i in x))  
             group_list = util.filter_list(ans_list, lambda x: True in list(i.get('is_group', False) for i in x))  
-            ans_list = sum(list(util.get_all_ans_list_by_qq(q, db_list) for q in admins), all_list) all_list)
+            ans_list = sum(list(util.get_all_ans_list_by_qq(q, db_list) for q in admins), all_list)
 
         # 处理发送者名称
         if is_at:
