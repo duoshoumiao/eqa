@@ -124,12 +124,12 @@ async def eqa_main(*params):
 
 
 # 设置问题的函数
-async def ask(ctx, keyword, is_me, is_group=False):
-    is_super_admin = ctx['user_id'] in admins
-    is_admin = util.is_group_admin(ctx) or is_super_admin
-
-    if config['rule']['only_admin_answer_all'] and not is_me and not is_admin:
-        return '回答所有人的只能管理设置啦'
+async def ask(ctx, keyword, is_me, is_group=False):  
+    is_super_admin = ctx['user_id'] in admins  
+    is_admin = util.is_group_admin(ctx) or is_super_admin  
+  
+    if config['rule']['only_admin_answer_all'] and not is_me and not is_group and not is_super_admin:  
+        return '回答所有人的只能超管设置啦，请使用【本群说】'
 
     question_handler = config['comm']['answer_me'] if is_me else config['comm']['answer_all']
     answer_handler = config['comm']['answer_handler']
@@ -371,9 +371,12 @@ async def del_question(ctx, target, clear=False):
             ans_list = group_list
         
         is_del_flag = False
-        for index, value in enumerate(ans_list):
-            # 如果不是本群就跳过  或者 是超级管理员的话 就继续删除
-            if value['group_id'] != ctx['group_id'] and not (is_super_admin and value['user_id'] in admins):
+        for index, value in enumerate(ans_list):  
+            # 有人/大家说（answer_all）类的回答只能超管删除  
+            if not value['is_me'] and not value.get('is_group', False) and not is_super_admin:  
+                continue  
+            # 如果不是本群就跳过  或者 是超级管理员的话 就继续删除  
+            if value['group_id'] != ctx['group_id'] and not (is_super_admin and value['user_id'] in admins):  
                 continue
             # 管理员则直接删除第一个元素
             if is_admin:
