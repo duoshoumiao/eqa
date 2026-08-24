@@ -372,9 +372,9 @@ async def del_question(ctx, target, clear=False):
                 continue  
             # 管理员则直接删除第一个元素  
             if is_admin:  
-                if not config['rule']['can_delete_super_admin_qa'] and \  
-                        value['user_id'] in admins and \  
-                        not is_super_admin:  
+                if (not config['rule']['can_delete_super_admin_qa']  
+                        and value['user_id'] in admins  
+                        and not is_super_admin):  
                     continue  
                 else:  
                     is_del_flag = True  
